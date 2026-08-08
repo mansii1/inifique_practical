@@ -1,13 +1,13 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
 
-import { AddProductPage } from "@/modules/products/components/add-product-page"
+import { EditProductPage } from "@/modules/products/components/edit-product-page"
 
 export const metadata: Metadata = {
-  title: "Add Product",
+  title: "Edit Product",
 }
 
-export default function NewProductPage() {
+export default function ProductEditRoute() {
   return (
     <Suspense
       fallback={
@@ -16,7 +16,7 @@ export default function NewProductPage() {
         </div>
       }
     >
-      <AddProductPage />
+      <EditProductPage />
     </Suspense>
   )
 }

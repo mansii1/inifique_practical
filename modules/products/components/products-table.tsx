@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import {
   ArrowDown,
   ArrowUp,
@@ -11,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -26,12 +27,16 @@ import type {
   ProductSortKey,
   SortDirection,
 } from "@/modules/products/types"
+import { withListQuery } from "@/modules/products/utils/list-query"
 
 type ProductsTableProps = {
   products: Product[]
   sortKey: ProductSortKey
   sortDir: SortDirection
+  listQuery: string
   onSort: (key: ProductSortKey) => void
+  onDelete: (product: Product) => void
+  deletingId?: number | null
 }
 
 const sortableColumns: {
@@ -66,7 +71,10 @@ export function ProductsTable({
   products,
   sortKey,
   sortDir,
+  listQuery,
   onSort,
+  onDelete,
+  deletingId,
 }: ProductsTableProps) {
   return (
     <div className="rounded-lg border border-border">
@@ -81,7 +89,7 @@ export function ProductsTable({
                     type="button"
                     onClick={() => onSort(col.key)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 rounded-sm text-left font-medium uppercase tracking-wide transition-colors hover:text-foreground",
+                      "inline-flex items-center gap-1 text-left text-xs font-medium uppercase hover:text-foreground",
                       isActive ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
@@ -154,30 +162,30 @@ export function ProductsTable({
               </TableCell>
               <TableCell>
                 <div className="flex items-center justify-end gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
+                  <Link
+                    href={withListQuery(`/products/${product.id}`, listQuery)}
                     aria-label={`View ${product.title}`}
-                    disabled
+                    className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
                   >
                     <Eye />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
+                  </Link>
+                  <Link
+                    href={withListQuery(
+                      `/products/${product.id}/edit`,
+                      listQuery
+                    )}
                     aria-label={`Edit ${product.title}`}
-                    disabled
+                    className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
                   >
                     <Pencil />
-                  </Button>
+                  </Link>
                   <Button
                     type="button"
                     variant="destructive"
                     size="icon-sm"
                     aria-label={`Delete ${product.title}`}
-                    disabled
+                    disabled={deletingId === product.id}
+                    onClick={() => onDelete(product)}
                   >
                     <Trash2 />
                   </Button>

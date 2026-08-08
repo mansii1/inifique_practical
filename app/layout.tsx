@@ -16,8 +16,7 @@ export const metadata: Metadata = {
     default: "Infiniqe Dashboard",
     template: "%s | Infiniqe Dashboard",
   },
-  description:
-    "CRUD dashboard for products, users, and recipes — Infiniqe frontend practical.",
+  description: "Infiniqe frontend practical dashboard",
 }
 
 export default function RootLayout({

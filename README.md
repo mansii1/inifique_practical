@@ -1,21 +1,42 @@
-# Next.js template
+# Infiniqe Dashboard
 
-This is a Next.js template with shadcn/ui.
+Frontend practical project — Next.js dashboard with Products CRUD (Users & Recipes coming next).
 
-## Adding components
+## Stack
 
-To add components to your app, run the following command:
+- Next.js + TypeScript + Tailwind
+- Axios, TanStack Query
+- React Hook Form + Yup
+- shadcn/ui
+- DummyJSON API
+
+## Run locally
 
 ```bash
-npx shadcn@latest add button
+npm install
 ```
 
-This will place the ui components in the `components` directory.
+Create `.env` (or copy from `_env.example`):
 
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button";
+```env
+NEXT_PUBLIC_API_BASE_URL=https://dummyjson.com
 ```
+
+```bash
+npm run dev
+```
+
+App starts at http://localhost:3000
+
+## Note about DummyJSON
+
+Create / update / delete APIs on DummyJSON are only simulated. The request succeeds and returns a response, but data is **not** saved on their server.
+
+So if you add/update/delete and then call GET again (or refresh), you'll see the old products list. That's an API limitation, not a frontend bug.
+
+## Products module
+
+- List with search, sort, pagination (via API query params)
+- Details / Add / Edit pages
+- Delete with confirm
+- List filters stay in the URL so going to details/edit and back keeps the same page state

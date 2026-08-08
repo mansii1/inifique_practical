@@ -3,16 +3,20 @@
 import Link from "next/link"
 import { Plus, Search } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+import { withListQuery } from "@/modules/products/utils/list-query"
 
 type ProductsToolbarProps = {
   search: string
+  listQuery: string
   onSearchChange: (value: string) => void
 }
 
 export function ProductsToolbar({
   search,
+  listQuery,
   onSearchChange,
 }: ProductsToolbarProps) {
   return (
@@ -28,10 +32,16 @@ export function ProductsToolbar({
         />
       </div>
 
-      <Button render={<Link href="/products/new" />} className="w-full sm:w-auto">
+      <Link
+        href={withListQuery("/products/new", listQuery)}
+        className={cn(
+          buttonVariants(),
+          "w-full justify-center sm:w-auto"
+        )}
+      >
         <Plus className="size-4" />
         Add Product
-      </Button>
+      </Link>
     </div>
   )
 }

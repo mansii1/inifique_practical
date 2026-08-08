@@ -1,19 +1,18 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 import {
   productSchema,
   type ProductFormValues,
 } from "@/modules/products/schemas/product-schema"
 
-const defaultValues: ProductFormValues = {
+const defaults: ProductFormValues = {
   title: "",
   description: "",
   price: 0,
@@ -23,38 +22,47 @@ const defaultValues: ProductFormValues = {
   stock: 0,
 }
 
-type ProductFormProps = {
+const inputClass =
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive dark:bg-input/30"
+
+type Props = {
+  defaultValues?: Partial<ProductFormValues>
   submitLabel?: string
+  cancelHref: string
+  onSubmit: (values: ProductFormValues) => Promise<void>
+  errorMessage?: string
+  successMessage?: string
 }
 
-export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) {
-  const [successMessage, setSuccessMessage] = useState("")
-
+export function ProductForm({
+  defaultValues,
+  submitLabel = "Save",
+  cancelHref,
+  onSubmit,
+  errorMessage,
+  successMessage,
+}: Props) {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    reset,
   } = useForm<ProductFormValues>({
     resolver: yupResolver(productSchema),
-    defaultValues,
+    defaultValues: { ...defaults, ...defaultValues },
   })
 
-  function onSubmit(values: ProductFormValues) {
-    // API wiring comes later — validation only for now
-    console.log("Validated product:", values)
-    setSuccessMessage("Looks good — API will be connected later.")
-    reset(defaultValues)
-  }
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+    <form
+      className="space-y-4"
+      noValidate
+      onSubmit={handleSubmit((values) => onSubmit(values))}
+    >
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-1.5 md:col-span-2">
+        <div className="space-y-1 md:col-span-2">
           <Label htmlFor="title">Title</Label>
-          <Input
+          <input
             id="title"
-            placeholder="e.g. Wireless Headphones"
+            className={inputClass}
             aria-invalid={!!errors.title}
             {...register("title")}
           />
@@ -63,30 +71,28 @@ export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) 
           )}
         </div>
 
-        <div className="space-y-1.5 md:col-span-2">
+        <div className="space-y-1 md:col-span-2">
           <Label htmlFor="description">Description</Label>
           <textarea
             id="description"
             rows={3}
-            placeholder="Short product description"
+            className={cn(inputClass, "h-auto py-2")}
             aria-invalid={!!errors.description}
-            className="w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30"
             {...register("description")}
           />
           {errors.description && (
-            <p className="text-xs text-destructive">
-              {errors.description.message}
-            </p>
+            <p className="text-xs text-destructive">{errors.description.message}</p>
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="price">Price</Label>
-          <Input
+          <input
             id="price"
             type="number"
             step="0.01"
             min={0}
+            className={inputClass}
             aria-invalid={!!errors.price}
             {...register("price", { valueAsNumber: true })}
           />
@@ -95,14 +101,15 @@ export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) 
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="discountPercentage">Discount (%)</Label>
-          <Input
+          <input
             id="discountPercentage"
             type="number"
             step="0.01"
             min={0}
             max={100}
+            className={inputClass}
             aria-invalid={!!errors.discountPercentage}
             {...register("discountPercentage", { valueAsNumber: true })}
           />
@@ -113,13 +120,13 @@ export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) 
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="stock">Stock</Label>
-          <Input
+          <input
             id="stock"
             type="number"
-            step={1}
             min={0}
+            className={inputClass}
             aria-invalid={!!errors.stock}
             {...register("stock", { valueAsNumber: true })}
           />
@@ -128,11 +135,11 @@ export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) 
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="brand">Brand</Label>
-          <Input
+          <input
             id="brand"
-            placeholder="e.g. Apple"
+            className={inputClass}
             aria-invalid={!!errors.brand}
             {...register("brand")}
           />
@@ -141,11 +148,11 @@ export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) 
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1 md:col-span-2">
           <Label htmlFor="category">Category</Label>
-          <Input
+          <input
             id="category"
-            placeholder="e.g. smartphones"
+            className={inputClass}
             aria-invalid={!!errors.category}
             {...register("category")}
           />
@@ -155,27 +162,25 @@ export function ProductForm({ submitLabel = "Save Product" }: ProductFormProps) 
         </div>
       </div>
 
+      {errorMessage && (
+        <p className="text-sm text-destructive">{errorMessage}</p>
+      )}
       {successMessage && (
-        <p className="rounded-md bg-accent/10 px-3 py-2 text-sm text-accent">
-          {successMessage}
-        </p>
+        <p className="text-sm text-accent">{successMessage}</p>
       )}
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full sm:w-auto"
-          render={<Link href="/products" />}
+        <Link
+          href={cancelHref}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "justify-center"
+          )}
         >
           Cancel
-        </Button>
-        <Button
-          type="submit"
-          className="w-full sm:w-auto"
-          disabled={isSubmitting}
-        >
-          {submitLabel}
+        </Link>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Please wait..." : submitLabel}
         </Button>
       </div>
     </form>

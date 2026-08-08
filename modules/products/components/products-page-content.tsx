@@ -2,94 +2,93 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { getErrorMessage } from "@/lib/api/get-error-message"
 import { ProductsPagination } from "@/modules/products/components/products-pagination"
 import { ProductsTable } from "@/modules/products/components/products-table"
 import { ProductsToolbar } from "@/modules/products/components/products-toolbar"
-import { getProducts } from "@/modules/products/services/products-api"
-import type { ProductSortKey, SortDirection } from "@/modules/products/types"
+import {
+  deleteProduct,
+  getProducts,
+} from "@/modules/products/services/products-api"
+import type {
+  Product,
+  ProductSortKey,
+  ProductsListResponse,
+  SortDirection,
+} from "@/modules/products/types"
+import { getListQueryString } from "@/modules/products/utils/list-query"
 
 const PAGE_SIZE = 10
-const SORT_KEYS: ProductSortKey[] = ["title", "price", "stock", "rating"]
 
-function parseSortKey(value: string | null): ProductSortKey {
-  if (value && SORT_KEYS.includes(value as ProductSortKey)) {
-    return value as ProductSortKey
-  }
+function getSortKey(value: string | null): ProductSortKey {
+  if (value === "price" || value === "stock" || value === "rating") return value
   return "title"
-}
-
-function parseSortDir(value: string | null): SortDirection {
-  return value === "desc" ? "desc" : "asc"
 }
 
 export function ProductsPageContent() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
 
   const q = searchParams.get("q") ?? ""
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
-  const sortKey = parseSortKey(searchParams.get("sortBy"))
-  const sortDir = parseSortDir(searchParams.get("order"))
+  const page = Math.max(1, Number(searchParams.get("page") || 1))
+  const sortKey = getSortKey(searchParams.get("sortBy"))
+  const sortDir: SortDirection =
+    searchParams.get("order") === "desc" ? "desc" : "asc"
+  const listQuery = getListQueryString(searchParams)
 
-  const [searchInput, setSearchInput] = useState(q)
+  const [search, setSearch] = useState(q)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+  const [msg, setMsg] = useState("")
 
   useEffect(() => {
-    setSearchInput(q)
+    setSearch(q)
   }, [q])
 
-  function updateParams(updates: Record<string, string | null>) {
+  function setParams(next: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString())
 
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === "") {
-        params.delete(key)
-      } else {
-        params.set(key, value)
-      }
+    Object.keys(next).forEach((key) => {
+      const value = next[key]
+      if (!value) params.delete(key)
+      else params.set(key, value)
     })
 
-    const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname)
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname)
   }
 
-  // Debounce search into the URL (server-side via API)
+  // debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchInput === q) return
-      updateParams({
-        q: searchInput.trim() || null,
-        page: "1",
-      })
+    const t = setTimeout(() => {
+      if (search === q) return
+      setParams({ q: search.trim() || null, page: "1" })
     }, 400)
 
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run on typed search
-  }, [searchInput])
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
-  function handleSort(key: ProductSortKey) {
-    if (sortKey === key) {
-      updateParams({
+  function onSort(key: ProductSortKey) {
+    if (key === sortKey) {
+      setParams({
         sortBy: key,
         order: sortDir === "asc" ? "desc" : "asc",
         page: "1",
       })
-      return
+    } else {
+      setParams({ sortBy: key, order: "asc", page: "1" })
     }
-
-    updateParams({
-      sortBy: key,
-      order: "asc",
-      page: "1",
-    })
   }
 
   const skip = (page - 1) * PAGE_SIZE
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
-    queryKey: ["products", { q, page, sortKey, sortDir, limit: PAGE_SIZE }],
+    queryKey: ["products", q, page, sortKey, sortDir],
     queryFn: () =>
       getProducts({
         q,
@@ -101,41 +100,72 @@ export function ProductsPageContent() {
     placeholderData: (prev) => prev,
   })
 
-  const total = data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const deleteMutation = useMutation({
+    mutationFn: (product: Product) => deleteProduct(product.id),
+    onSuccess: (_res, product) => {
+      // api doesn't really delete, so just drop it from cache for now
+      queryClient.setQueriesData<ProductsListResponse>(
+        { queryKey: ["products"] },
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            products: old.products.filter((p) => p.id !== product.id),
+            total: Math.max(0, old.total - 1),
+          }
+        }
+      )
+      setMsg(`Deleted "${product.title}"`)
+      setDeleteTarget(null)
+      if (data && data.products.length <= 1 && page > 1) {
+        setParams({ page: String(page - 1) })
+      }
+    },
+  })
+
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE))
   const products = data?.products ?? []
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          Search, sort and page through the catalogue — handled by the API.
-        </p>
-      </div>
+      <ProductsToolbar
+        search={search}
+        listQuery={listQuery}
+        onSearchChange={setSearch}
+      />
 
-      <ProductsToolbar search={searchInput} onSearchChange={setSearchInput} />
+      {msg && <p className="text-sm text-accent">{msg}</p>}
 
       {isError && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {(error as Error)?.message || "Failed to load products."}
-        </div>
+        <p className="text-sm text-destructive">
+          {getErrorMessage(error, "Failed to load products")}
+        </p>
+      )}
+
+      {deleteMutation.isError && (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(deleteMutation.error, "Delete failed")}
+        </p>
       )}
 
       {isLoading ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-border text-sm text-muted-foreground">
-          Loading products...
-        </div>
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Loading...
+        </p>
       ) : products.length === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-border text-sm text-muted-foreground">
-          No products found.
-        </div>
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          No products found
+        </p>
       ) : (
-        <div className={isFetching ? "opacity-70 transition-opacity" : ""}>
+        <div className={isFetching ? "opacity-70" : undefined}>
           <ProductsTable
             products={products}
             sortKey={sortKey}
             sortDir={sortDir}
-            onSort={handleSort}
+            listQuery={listQuery}
+            onSort={onSort}
+            onDelete={setDeleteTarget}
+            deletingId={deleteMutation.isPending ? deleteTarget?.id : null}
           />
         </div>
       )}
@@ -143,9 +173,25 @@ export function ProductsPageContent() {
       <ProductsPagination
         page={Math.min(page, totalPages)}
         totalPages={totalPages}
-        onPageChange={(nextPage) =>
-          updateParams({ page: nextPage <= 1 ? null : String(nextPage) })
+        onPageChange={(p) => setParams({ page: p <= 1 ? null : String(p) })}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete this product?"
+        description={
+          deleteTarget ? `Remove "${deleteTarget.title}"?` : undefined
         }
+        confirmLabel="Delete"
+        loading={deleteMutation.isPending}
+        onCancel={() => {
+          if (!deleteMutation.isPending) setDeleteTarget(null)
+        }}
+        onConfirm={() => {
+          if (!deleteTarget) return
+          setMsg("")
+          deleteMutation.mutate(deleteTarget)
+        }}
       />
     </div>
   )

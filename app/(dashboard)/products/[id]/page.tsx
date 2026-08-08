@@ -1,22 +1,22 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
 
-import { AddProductPage } from "@/modules/products/components/add-product-page"
+import { ProductDetails } from "@/modules/products/components/product-details"
 
 export const metadata: Metadata = {
-  title: "Add Product",
+  title: "Product Details",
 }
 
-export default function NewProductPage() {
+export default function ProductDetailsPage() {
   return (
     <Suspense
       fallback={
         <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-          Loading form...
+          Loading product...
         </div>
       }
     >
-      <AddProductPage />
+      <ProductDetails />
     </Suspense>
   )
 }
