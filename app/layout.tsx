@@ -1,15 +1,23 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import type { Metadata } from "next"
+import { DM_Sans } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'})
-
-const fontMono = Geist_Mono({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-sans",
 })
+
+export const metadata: Metadata = {
+  title: {
+    default: "Infiniqe Dashboard",
+    template: "%s | Infiniqe Dashboard",
+  },
+  description:
+    "CRUD dashboard for products, users, and recipes — Infiniqe frontend practical.",
+}
 
 export default function RootLayout({
   children,
@@ -20,7 +28,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
+      className={cn("font-sans antialiased", dmSans.variable)}
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>
