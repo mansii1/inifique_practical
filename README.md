@@ -1,6 +1,6 @@
 # Infiniqe Dashboard
 
-Frontend practical project — Next.js dashboard with Products CRUD (Users & Recipes coming next).
+Frontend practical project — Next.js dashboard for Products, Users, and Recipes.
 
 ## Stack
 
@@ -32,7 +32,7 @@ App starts at http://localhost:3000
 
 Create / update / delete APIs on DummyJSON are only simulated. The request succeeds and returns a response, but data is **not** saved on their server.
 
-So if you add/update/delete and then call GET again (or refresh), you'll see the old products list. That's an API limitation, not a frontend bug.
+So if you add/update/delete and then refresh, you'll see the old list again. That's an API limitation, not a frontend bug. The UI updates the current list in memory after write actions so you can still see the change until refresh.
 
 ## Products module
 
@@ -40,3 +40,11 @@ So if you add/update/delete and then call GET again (or refresh), you'll see the
 - Details / Add / Edit pages
 - Delete with confirm
 - List filters stay in the URL so going to details/edit and back keeps the same page state
+
+## Users module
+
+- Single page CRUD
+- Reusable table listing + search/pagination
+- Add / Edit in a modal
+- Details in a right-side drawer
+- Delete from the table with confirm

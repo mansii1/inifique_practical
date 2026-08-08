@@ -14,6 +14,7 @@ import {
   getProduct,
   updateProduct,
 } from "@/modules/products/services/products-api"
+import type { Product, ProductsListResponse } from "@/modules/products/types"
 import {
   getListQueryString,
   productsListHref,
@@ -41,10 +42,28 @@ export function EditProductPage() {
 
   const mutation = useMutation({
     mutationFn: (values: ProductFormValues) => updateProduct(id, values),
-    onSuccess: async () => {
+    onSuccess: (updated, values) => {
+      // DummyJSON doesn't persist, so patch local cache for this session
+      const next: Product = {
+        ...(product as Product),
+        ...updated,
+        ...values,
+        id,
+      }
+
+      queryClient.setQueryData(["product", id], next)
+      queryClient.setQueriesData<ProductsListResponse>(
+        { queryKey: ["products"] },
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            products: old.products.map((p) => (p.id === id ? { ...p, ...next } : p)),
+          }
+        }
+      )
+
       setSuccessMsg("Saved")
-      await queryClient.invalidateQueries({ queryKey: ["products"] })
-      await queryClient.invalidateQueries({ queryKey: ["product", id] })
       setTimeout(() => router.push(listHref), 700)
     },
   })
