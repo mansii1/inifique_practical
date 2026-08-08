@@ -48,3 +48,8 @@ So if you add/update/delete and then refresh, you'll see the old list again. Tha
 - Add / Edit in a modal
 - Details in a right-side drawer
 - Delete from the table with confirm
+
+## Recipes module
+
+- Card listing with debounced search + pagination
+- Details page loads recipe on the server (`/recipes/[id]`)
